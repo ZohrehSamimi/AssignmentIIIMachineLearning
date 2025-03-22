@@ -11,7 +11,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchsummary import summary
 import torch.nn as nn
-
+from torch.utils.data import TensorDataset, DataLoader
 
 # Download stopwords if not already present
 nltk.download('stopwords')
@@ -155,8 +155,22 @@ print(model)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-# Define loss
-loss_fn = nn.CrossEntropyLoss()
+# Define number of epochs
+batch_size = 64
+num_epochs = 10
+learning_rate = 1e-3
 
-# Define optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+# Define loss function and optimizer
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+
+# Create datasets
+train_dataset = TensorDataset(X_train, y_train)
+val_dataset   = TensorDataset(X_val, y_val)
+test_dataset  = TensorDataset(X_test, y_test)
+
+# Create dataloaders
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+val_loader   = DataLoader(val_dataset, batch_size=batch_size)
+test_loader  = DataLoader(test_dataset, batch_size=batch_size)
