@@ -66,6 +66,13 @@ w2v_model = Word2Vec(sentences=df["post_tokens"], vector_size=100, window=5, min
 #check the Model
 #print(w2v_model.wv["burger"])  # Example: See vector for a word
 #print(w2v_model.wv.most_similar("burger"))  # Similar words
+# Function to map tokens to vectors
 
+def tokens_to_vectors(tokens):
+    return [w2v_model.wv[token] for token in tokens if token in w2v_model.wv]
 
+df["post_vectors"] = df["post_tokens"].apply(tokens_to_vectors)
+
+#print(df["post_vectors"].iloc[0])
+#print(f"Vector shape for first word: {df['post_vectors'].iloc[0][0].shape}")
 
