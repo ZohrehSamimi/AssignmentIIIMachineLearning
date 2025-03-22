@@ -116,17 +116,5 @@ Adding attention helps the model focus on important parts of the input sequence,
  especially in tasks like hate speech detection where some words matter more than others.
   It often leads to better performance (as shown in the HateXplain paper).
 
-  
-Before adding Scaled Dot-Product Attention:
-🔍 Side-by-Side Comparison:
-              precision_baseline  recall_baseline  f1-score_baseline  ...  recall_improved  f1-score_improved  support_improved
-normal                  0.598220         0.769419           0.673104  ...         0.694195           0.660187       1223.000000
-hatespeech              0.682540         0.689840           0.686170  ...         0.763636           0.678385        935.000000
-offensive               0.528713         0.308671           0.389781  ...         0.298266           0.376917        865.000000
-accuracy                0.612967         0.612967           0.612967  ...         0.602382           0.602382          0.602382
-macro avg               0.603158         0.589310           0.583019  ...         0.585366           0.571830       3023.000000
-weighted avg            0.604411         0.612967           0.596076  ...         0.602382           0.584761       3023.000000
 
-
-After adding Scaled Dot-Product Attention:
 
