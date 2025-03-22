@@ -6,7 +6,7 @@ from nltk.corpus import stopwords
 import string
 from gensim.models import Word2Vec
 import numpy as np
-
+from sklearn.model_selection import train_test_split
 
 # Download stopwords if not already present
 nltk.download('stopwords')
@@ -76,3 +76,13 @@ df["post_vectors"] = df["post_tokens"].apply(tokens_to_vectors)
 #print(df["post_vectors"].iloc[0])
 #print(f"Vector shape for first word: {df['post_vectors'].iloc[0][0].shape}")
 
+# First split: Train 70% | Temp 30%
+train_df, temp_df = train_test_split(df, test_size=0.30, random_state=42, stratify=df["post_label"])
+
+# Second split: Validation 15% | Test 15% from Temp
+val_df, test_df = train_test_split(temp_df, test_size=0.50, random_state=42, stratify=temp_df["post_label"])
+
+# Confirm the sizes
+#print(f"Train size: {len(train_df)}")
+#print(f"Validation size: {len(val_df)}")
+#print(f"Test size: {len(test_df)}")
