@@ -130,15 +130,23 @@ X_test, y_test   = prepare_split(test_df)
 
 # Define the LSTM model
 class LSTMClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=1):
-        super(LSTMClassifier, self).__init__()  
-        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, output_dim)
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=1, dropout=0.5):
+        super(LSTMClassifier, self).__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, 
+                            batch_first=True, dropout=dropout, bidirectional=True)
+        self.fc = nn.Linear(hidden_dim * 2, output_dim)  # times 2 for bidirectional
+        self.dropout = nn.Dropout(dropout)
+        for name, param in self.lstm.named_parameters():
+            if 'weight' in name:
+                nn.init.xavier_uniform_(param)
+
 
     def forward(self, x):
-        _, (hidden, _) = self.lstm(x)  # hidden = [num_layers, batch_size, hidden_dim]
-        out = self.fc(hidden[-1])      # Get the output from the last LSTM layer
+        _, (hidden, _) = self.lstm(x)  # hidden shape: (num_layers * 2, batch, hidden_dim)
+        hidden_cat = torch.cat((hidden[-2], hidden[-1]), dim=1)  # last layer's forward & backward
+        out = self.fc(self.dropout(hidden_cat))
         return out
+
 
 # Define model parameters
 input_dim = 100      # Word2Vec vector size
@@ -157,8 +165,8 @@ model.to(device)
 
 # Define number of epochs
 batch_size = 64
-num_epochs = 10
-learning_rate = 1e-3
+num_epochs = 20
+learning_rate = 5e-4
 
 # Define loss function and optimizer
 loss_fn = nn.CrossEntropyLoss()
@@ -174,3 +182,54 @@ test_dataset  = TensorDataset(X_test, y_test)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=batch_size)
 test_loader  = DataLoader(test_dataset, batch_size=batch_size)
+
+#training the model
+# Training loop
+
+for epoch in range(num_epochs):
+    model.train()
+    total_loss = 0
+    correct = 0
+    total = 0
+
+    for batch_X, batch_y in train_loader:
+        batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(batch_X)  # shape: (batch_size, num_classes)
+
+        loss = loss_fn(outputs, batch_y)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+        _, predicted = torch.max(outputs, 1)
+        correct += (predicted == batch_y).sum().item()
+        total += batch_y.size(0)
+
+    train_accuracy = 100 * correct / total
+    avg_train_loss = total_loss / len(train_loader)
+
+    # --- Validation ---
+    model.eval()
+    val_loss = 0
+    val_correct = 0
+    val_total = 0
+
+    with torch.no_grad():
+        for batch_X, batch_y in val_loader:
+            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+            outputs = model(batch_X)
+            loss = loss_fn(outputs, batch_y)
+
+            val_loss += loss.item()
+            _, predicted = torch.max(outputs, 1)
+            val_correct += (predicted == batch_y).sum().item()
+            val_total += batch_y.size(0)
+
+    val_accuracy = 100 * val_correct / val_total
+    avg_val_loss = val_loss / len(val_loader)
+
+    print(f"Epoch [{epoch+1}/{num_epochs}] "
+          f"Train Loss: {avg_train_loss:.4f} | Train Acc: {train_accuracy:.2f}% "
+          f"| Val Loss: {avg_val_loss:.4f} | Val Acc: {val_accuracy:.2f}%")
