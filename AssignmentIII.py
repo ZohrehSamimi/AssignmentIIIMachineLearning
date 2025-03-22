@@ -9,6 +9,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from torchsummary import summary
+import torch.nn as nn
+
 
 # Download stopwords if not already present
 nltk.download('stopwords')
@@ -122,4 +125,27 @@ X_test, y_test   = prepare_split(test_df)
 #print("Train:", X_train.shape, y_train.shape)
 #print("Val:", X_val.shape, y_val.shape)
 #print("Test:", X_test.shape, y_test.shape)
+
+
+
+# Define the LSTM model
+class LSTMClassifier(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=1):
+        super(LSTMClassifier, self).__init__()  
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        _, (hidden, _) = self.lstm(x)  # hidden = [num_layers, batch_size, hidden_dim]
+        out = self.fc(hidden[-1])      # Get the output from the last LSTM layer
+        return out
+
+# Define model parameters
+input_dim = 100      # Word2Vec vector size
+hidden_dim = 128
+output_dim = 3       # Number of classes
+
+# Instantiate the model
+model = LSTMClassifier(input_dim, hidden_dim, output_dim)
+print(model)
 
