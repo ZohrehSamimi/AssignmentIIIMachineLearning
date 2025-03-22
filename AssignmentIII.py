@@ -8,7 +8,9 @@ from torch.nn.utils.rnn import pad_sequence
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import classification_report, accuracy_score
-
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
 # --- Settings ---
 nltk.download("stopwords")
 stop_words = set(stopwords.words("english"))
@@ -153,3 +155,53 @@ if DO_TRAIN:
 if DO_TUNING:
     print("\n🚀 Running Hyperparameter Tuning...")
     best_model = run_tuning()
+
+# --- Evaluation of both models on test set---
+
+def evaluate_model(model, X_test, y_test, name="Model"):
+    model.eval()
+    preds, labels = [], []
+
+    with torch.no_grad():
+        for i in range(0, len(X_test), 64):  # batching for performance
+            batch_X = X_test[i:i+64].to(device)
+            batch_y = y_test[i:i+64].to(device)
+            outputs = model(batch_X)
+            predicted = torch.argmax(outputs, dim=1)
+            preds.extend(predicted.cpu().numpy())
+            labels.extend(batch_y.cpu().numpy())
+
+    # Report and metrics
+    report = classification_report(labels, preds, output_dict=True, target_names=["normal", "hatespeech", "offensive"])
+    acc = accuracy_score(labels, preds)
+    cm = confusion_matrix(labels, preds)
+
+    print(f"\n📊 Evaluation Report for {name}")
+    print(classification_report(labels, preds, target_names=["normal", "hatespeech", "offensive"]))
+    print(f"Accuracy: {acc:.4f}")
+
+    # Confusion Matrix Plot
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+                xticklabels=["normal", "hatespeech", "offensive"],
+                yticklabels=["normal", "hatespeech", "offensive"])
+    plt.title(f"Confusion Matrix - {name}")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.tight_layout()
+    plt.show()
+
+    return pd.DataFrame(report).transpose()
+
+# Run evaluations
+baseline_eval = evaluate_model(model, X_test, y_test, name="Baseline Model")
+improved_eval = evaluate_model(best_model, X_test, y_test, name="Improved Model")
+
+# Merge for side-by-side comparison
+comparison = pd.concat([baseline_eval, improved_eval], axis=1)
+comparison.columns = [f"{col}_baseline" for col in baseline_eval.columns] + \
+                     [f"{col}_improved" for col in improved_eval.columns]
+
+# Display comparison table
+print("\n🔍 Side-by-Side Comparison:")
+print(comparison)
