@@ -7,6 +7,8 @@ import string
 from gensim.models import Word2Vec
 import numpy as np
 from sklearn.model_selection import train_test_split
+import torch
+from torch.nn.utils.rnn import pad_sequence
 
 # Download stopwords if not already present
 nltk.download('stopwords')
@@ -86,3 +88,38 @@ val_df, test_df = train_test_split(temp_df, test_size=0.50, random_state=42, str
 #print(f"Train size: {len(train_df)}")
 #print(f"Validation size: {len(val_df)}")
 #print(f"Test size: {len(test_df)}")
+
+
+label2id = {"normal": 0, "hatespeech": 1, "offensive": 2}
+df["label_id"] = df["post_label"].map(label2id)
+
+
+# Convert list of vectors to padded tensors and labels
+def prepare_split(df_split):
+    # Filter out posts with empty vectors
+    df_filtered = df_split[df_split["post_vectors"].apply(lambda v: len(v) > 0)].copy()
+
+    # Convert labels
+    y = torch.tensor(df_filtered["post_label"].map(label2id).values, dtype=torch.long)
+
+    # Convert each list of vectors to a tensor
+    X = [torch.tensor(vectors, dtype=torch.float) for vectors in df_filtered["post_vectors"]]
+
+    # Pad sequences
+    X_padded = pad_sequence(X, batch_first=True)
+    #print(f"Removed {len(df_split) - len(df_filtered)} posts with empty vectors.")
+
+    return X_padded, y
+
+
+
+# Prepare data for each split
+X_train, y_train = prepare_split(train_df)
+X_val, y_val     = prepare_split(val_df)
+X_test, y_test   = prepare_split(test_df)
+
+# Check shapes
+#print("Train:", X_train.shape, y_train.shape)
+#print("Val:", X_val.shape, y_val.shape)
+#print("Test:", X_test.shape, y_test.shape)
+
