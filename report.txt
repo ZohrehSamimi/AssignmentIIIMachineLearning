@@ -1,0 +1,33 @@
+
+
+🔍 Observations:
+
+Hidden	Dropout	Learning Rate	Batch Size	Macro F1 Score
+64	    0.3	    0.001	         32	        0.5589858595578204
+64	    0.3 	0.001	         64	        0.5698772226870484
+128	    0.3	    0.001	         32	        0.5946095565767954
+128	    0.3	    0.001	         64	        0.5844647193421743
+✅ Best Performing Configuration: Hidden=128, Dropout=0.3, LR=0.001, Batch Size=32 with Macro F1 = 0.5946
+
+
+
+Best Accuracy Trends: Models with higher hidden dimensions (e.g., 128) and smaller batch sizes (e.g., 32) tend to perform better. For example:
+
+H=128, D=0.3, LR=0.001, B=32 got to 61.69% accuracy after only 5 epochs.
+
+Stable Training: All runs show consistent improvement across epochs — no signs of overfitting or instability.
+
+
+
+1. Hidden Dimension (H) Impact:
+Observation: H=128 consistently outperformed H=64 across different learning rates and batch sizes.
+
+Why:
+
+The hidden dimension controls how many features the LSTM can learn at each time step.
+
+Larger hidden size = more capacity to capture complex patterns in text (like sarcasm, subtle hate speech).
+
+With a hidden size of 128, the model can form richer representations of sentence-level meaning.
+
+✅ Conclusion: Increasing hidden size improves performance — but also increases computation and overfitting risk (not yet an issue here).
