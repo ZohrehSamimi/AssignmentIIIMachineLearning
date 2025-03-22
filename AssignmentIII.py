@@ -149,3 +149,14 @@ output_dim = 3       # Number of classes
 model = LSTMClassifier(input_dim, hidden_dim, output_dim)
 print(model)
 
+#Model Training
+# Define loss and optimizer
+# Move model to device (if not done already)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# Define loss
+loss_fn = nn.CrossEntropyLoss()
+
+# Define optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
