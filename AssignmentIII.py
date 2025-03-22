@@ -12,6 +12,8 @@ from torch.nn.utils.rnn import pad_sequence
 from torchsummary import summary
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
+from sklearn.metrics import classification_report, accuracy_score
+
 
 # Download stopwords if not already present
 nltk.download('stopwords')
@@ -233,3 +235,38 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch+1}/{num_epochs}] "
           f"Train Loss: {avg_train_loss:.4f} | Train Acc: {train_accuracy:.2f}% "
           f"| Val Loss: {avg_val_loss:.4f} | Val Acc: {val_accuracy:.2f}%")
+#Model Evaluation(baseline on validation set)
+# Run evaluation first
+model.eval()
+val_preds = []
+val_labels = []
+
+with torch.no_grad():
+    for batch_X, batch_y in val_loader:
+        batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+        outputs = model(batch_X)
+        _, predicted = torch.max(outputs, 1)
+
+        val_preds.extend(predicted.cpu().numpy())
+        val_labels.extend(batch_y.cpu().numpy())
+
+# Generate metrics
+report_dict = classification_report(val_labels, val_preds, target_names=["normal", "hatespeech", "offensive"], output_dict=True)
+val_acc = accuracy_score(val_labels, val_preds)
+
+# Save as row in DataFrame
+baseline_results = pd.DataFrame({
+    "model": ["BiLSTM"],
+    "hidden_dim": [128],
+    "dropout": [0.5],
+    "lr": [1e-3],
+    "val_accuracy": [val_acc],
+    "normal_f1": [report_dict["normal"]["f1-score"]],
+    "hatespeech_f1": [report_dict["hatespeech"]["f1-score"]],
+    "offensive_f1": [report_dict["offensive"]["f1-score"]],
+    "macro_f1": [report_dict["macro avg"]["f1-score"]]
+})
+
+# Save or append to CSV
+baseline_results.to_csv("model_results.csv", index=False)
+print(" Baseline evaluation saved to model_results.csv")
